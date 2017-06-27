@@ -1,0 +1,278 @@
+---
+title: "BeersAndBreweriesCaseStudy"
+author: "David Benepe"
+date: "June 23, 2017"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+Organizers of the 2018 Craft Brewers Conference have requested a Data Analysis for presentation at the conference to be held April 18-May 3, 2018 in Nashville.  This report summarizes the available data on beers and breweries to be used in the Data Analysis along with answers to an initial list of questions submitted by the organizers.   From this information, the organizers will develop a formal request for the Data Analysis and Presentation.
+
+## Breweries
+
+The Breweries dataset contains data about US breweries, including a unique identifier, name, and the city and state where each brewery is located.
+The following code reads in the original Breweries.csv dataset and displays summary information about the data.
+
+```{r breweries}
+## source(file="testinfo/Analysis/LoadBreweryFile.R",print.eval=TRUE)
+## this makefile is "LoadBreweryFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  load the raw data from "breweries.csv" file stored in the "/testinfo/DATA" folder of the working directory (Rproject folder) 
+## assign the contents of the file to a dataframe called "OriginalBreweryData"
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# read in the BreweryData
+filename=paste(DataPath,"Breweries.csv",sep="")
+OriginalBreweryData<-read.csv(filename,sep=",",header=TRUE)
+# display sample data for data checking
+class(OriginalBreweryData)
+str(OriginalBreweryData)
+head(OriginalBreweryData)
+tail(OriginalBreweryData)
+```
+
+## Beers
+
+The Beers dataset contains data about US Craft beers, including a unique identifier, name, alcohol by volume, international bitterness units, brewery identifier, style and ounces of beer.
+The following code reads in the original Beers.csv dataset and displays summary information about the dataset
+
+```{r beers}
+## source(file="testinfo/Analysis/LoadBeersFile.R",print.eval=TRUE)
+## this makefile is "LoadBeersFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  load the raw data from "beer.csv" file stored in the "/testinfo/DATA" folder of the working directory (Rproject folder) 
+## assign the contents of the file to a dataframe called "OriginalBeersData"
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# read in the BeersData
+filename=paste(DataPath,"Beers.csv",sep="")
+OriginalBeersData<-read.csv(filename,sep=",",header=TRUE)
+# display sample data for data checking
+class(OriginalBeersData)
+str(OriginalBeersData)
+head(OriginalBeersData)
+tail(OriginalBeersData)
+```
+
+## Questions (from Conference Organizers)
+
+#### 1.  How many breweries are present in each state?
+
+A table with the number of breweries for the 50 states and district of columbia ("DC") follows:
+
+```{r q1}
+## source(file="testinfo/Analysis/BreweriesPerStateFile.R",print.eval = TRUE)
+## this makefile is "BreweriesPerStateFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  compute and display the number of Breweries Per State 
+## Assumes that OriginalBreweryData is already in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# Use the Summary function to count the breweries per State
+BreweriesPerState<-data.frame(summary(OriginalBreweryData$State,maxsum=51))
+BreweriesPerState<-data.frame(BreweriesPerState,State=row.names(BreweriesPerState))
+names(BreweriesPerState)[1]<-"No. Of Breweries"
+row.names(BreweriesPerState)<-NULL
+BreweriesPerState
+```
+
+#### 2.  Merge the two datasets together by brewery id.   Print the first 6 and last 6 observations to check the merged file.
+
+Before merging, we'll clean up the data a bit, so both data frames use the same variable (Brewery_id) for the brewery identifier and to distinguish between brewery names and beers names in the merged table.  
+
+The first 6 and last 6 observations of the cleaned data are displayed first, followed by the same information for the merged data, as requested.
+
+```{r q2}
+## source(file="testinfo/Analysis/CleanAndMergeDataFrames.R", print.eval = TRUE)
+## this makefile is "CleanAndMergeDataFrames.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purposes: make working copies of the original data  
+##           align the brewery identifiers in each table 
+##           clarify the "Name" column in each table
+## assumes that OriginalBreweryData and OriginalBeersData are already in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+## make working copies of the original data
+BreweryData<-OriginalBreweryData
+BeersData<-OriginalBeersData
+## align brewery identifiers and clarify "Names" columns
+library(plyr)
+BreweryData<-rename(BreweryData,c("Brew_ID"="Brewery_id","Name"="Brewery_Name"))
+head(BreweryData)
+BeersData<-rename(BeersData,c("Name"="Beer_Name"))
+head(BeersData)
+# merge the cleaned data on Brewery_id
+BreweryAndBeersData<-merge(BreweryData,BeersData,all=TRUE,sort=TRUE)
+head(BreweryAndBeersData)
+tail(BreweryAndBeersData)
+```
+
+#### 3.  Report the number of missing values in each column of the merged dataset.
+
+There are 62 missing values for alcohol by volume and 1005 missing values for international bitterness units.  These missing values will be removed from further analysis although they remain in the dataframe.
+
+```{r q3}
+## source(file="testinfo/Analysis/FindMissingValues.R",print.eval = TRUE)
+## this makefile is "FindMissingValues.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  find and report the number of missing values in each column of the BreweryAndBeersData dataframe 
+## assumes BreweryAndBeersData already exists in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+## find missing values in each column of the merged data
+B<-BreweryAndBeersData
+MV<-"Missing Values"
+N<-sapply(B,function(x) sum(is.na(x)))
+MV[1]
+N[N>0]
+```
+
+#### 4.  Compute the median alcohol content (mabv) and median international bitterness units (mibu) for each state.  Provide a bar chart for comparison.
+
+The table below lists mabv and mibu by state.  Note that missing table values for abv and ibu by type of beer are ignored for the purpose of preparing this table.  Separate bar charts are provided for alcohol content and bitterness.  The bars for states are in the same order as the table.  The plots may also be found in the subdirectory "BeersAndBreweriesMaster_files".
+
+```{r q4}
+## source(file="testinfo/Analysis/ComputeAndPlotMedians.R",print.eval = TRUE)
+## this makefile is "ComputeAndPlotMedians.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  Compute the median alcohol content and international bitterness units for each state.  Provide a bar chart for comparison.
+## Assumes that the dataframe BreweryAndBeersData is already in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# prepare data vectors
+AlcoholContent<-BreweryAndBeersData$ABV
+IbuContent<-BreweryAndBeersData$IBU
+State<-BreweryAndBeersData$State
+state=BreweriesPerState$State
+mabv<-numeric(51)
+maxabv<-numeric(51)
+mibu<-numeric(51)
+maxibu<-numeric(51)
+for (i in 1:51) {
+    s=state[i]
+    mabv[i]=median(AlcoholContent[state=s],na.rm=TRUE)
+    maxabv[i]=max(AlcoholContent[state=s]) # for use in question 5
+    mibu[i]=median(IbuContent[state=s],na.rm=TRUE)
+    maxibu[i]=max(IbuContent[state=s]) # for use in question 5
+    }
+MediansByState=data.frame(mabv,mibu,state)
+MediansByState
+# prepare a side by side bar plot of mabv, mibu using state for labels
+count1<-as.vector(mabv)
+count2<-as.vector(mibu)
+barplot(count1, main="Median Alchohol Content by State")
+barplot(count2, main="Median Bitterness by State")
+```
+
+#### 5.  Which state has the maximum alcoholic beer and which state has the most bitter beer?
+
+Delaware has the most alcoholic beer, at 12.5% alcohol by volume.  
+
+Montana has the bitterest beer, at 100 IBU units. 
+
+```{r q5}
+## source(file="Testinfo/Analysis/MaximumStatFile.R")
+## this makefile is "MaximumStatFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  find the state with the maximum alcohol content and the state with the maximum international bitterness units for each state.  
+## Assumes that the dataframe MediansByState and related variables are already in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# Identify the state and value of the maximum abv and maximum ibu
+shabv<-" "
+gmaxabv<-0
+shibu<-" "
+gmaxibu<-0
+for (i in 1:51) {
+    s=state[i]
+    if (!is.na(maxabv[i]) & maxabv[i]>gmaxabv) {gmaxabv=mabv[i]
+       shabv=s}
+    if (!is.na(maxibu[i]) & maxibu[i]>gmaxibu) {gmaxibu=mibu[i]
+       shibu=s}
+}
+#display results
+print(paste(shabv," has the maximum alcohol content of ", gmaxabv))
+print(paste(shibu," has the maximum bitterness units of ", gmaxibu))
+```
+
+#### 6.  Summarize statistics for Alcohol by Volume.
+
+As shown below, nationwide data for AlcoholByVolume are in the range from [.001 to .128]
+Measures of center:
+    Median: .056
+    Mean:   .05977
+Interquartile range = [.05, .067]
+
+The distribution is somewhat right-skewed with the upper-quartile including points in the range from [.067, .128]   
+Drawing any conclusions from this data would benefit from identifying possible outliers or data errors, 
+
+```{r q6}
+## source(file="Testinfo/Analysis/AlcoholByVolumeSummaryFile.R")
+## this makefile is "AlcoholByVolumeSummaryFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose:  compute and display the summary statistics on alcohol by volume 
+## Assumes that the "Alchohol Content" vector (created by "ComputeAndPlotMedians.R") is already in the workspace
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# Use the Summary function
+ABVSummary<-(summary(AlcoholContent))
+print(" NATIONAL SUMMARY STATISTICS FOR ALCOHOL BY VOLUME")
+print(ABVSummary)
+```
+
+#### 7.  Is there a relationship between the bitterness of the beer and its alcohol content?   Provide a scatter plot.
+
+The points in the scatterplot form a cloud, indicating that a relationship between the bitterness of the beer and its alcohol content is unlikely.
+
+```{r q7}
+## source(file="Testinfo/Analysis/PrepareScatterplotFile.R")
+## copied code inline from source to meet requirement that code is in the HTML
+library(ggplot2)
+qplot(AlcoholContent,IbuContent,geom="point",main="Scatterplot of Alcohol Content vs International Bitterness Units",xlab="ABV",ylab="IBU")
+```
+
+## Conclusion
+
+The cleaned and merged data may be found in the form of .cvs files in the "Testinfo/DATA" folder.   As noted in the answer to question 6, it would be helpful to speak with an expert in the collection of ABV data to investigate possible outliers or data errors.  Additionally, I look forward to reviewing these results with the convention organizers to further explore their requirements for the presentation of this data at their conference next year.
+
+```{r conclusion}
+## source(file="Testinfo/Analysis/OutputCleanedDataFile.R")
+## this makefile is "OutputCleanedDataFile.R" 
+## location: "/testinfo/ANALYSIS" folder
+## purpose: to save the cleaned data in the form of .csv files:  
+##  store the BreweryAndBeersData dataframe as "BreweryAndBeers.csv" in the "/testinfo/DATA" folder of the working directory (Rproject folder) 
+##  store the BreweriesPerState dataframe as "BreweriesPerState.csv" in the "/testinfo/DATA" folder of the working directory (Rproject folder) 
+##  store the cleaned BreweriesData dataframe as "BreweryData.csv" in the "/testinfo/DATA" folder of the working directory (Rproject folder)
+##  store the cleaned BeersData dataframe as "BeersData.csv" in the "/testinfo/DATA" folder of the working directory (Rproject folder)
+## copied code inline from source to meet requirement that code is in the HTML
+AnalysisPath<-"testinfo/ANALYSIS/"
+DataPath<-"testinfo/DATA/"
+# filenames
+filename1=paste(DataPath,"BeersData.csv",sep="")
+write.csv(BeersData,file=filename1,row.names=TRUE)
+filename2=paste(DataPath,"BreweryData.csv",sep="")
+write.csv(BreweryData,file=filename2,row.names=TRUE)
+filename3=paste(DataPath,"BreweryAndBeersData.csv",sep="")
+write.csv(BreweryAndBeersData,file=filename3,row.names=TRUE)
+filename4=paste(DataPath,"BreweriesPerState.csv",sep="")
+write.csv(BreweriesPerState,file=filename4,row.names=TRUE)
+```
+
+
+For more information on the conference, please see:  https://www.craftbrewersconference.com/
+
